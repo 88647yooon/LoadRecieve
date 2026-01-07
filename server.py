@@ -7,7 +7,7 @@ def start_worker():
     # 소켓 설정 (IPv4, TCP)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(('0.0.0.0', PORT)) # 모든 인터페이스에서 접속 허용
-    server_socket.listen(5)
+    server_socket.listen(1024)
     
     print(f"[*] Worker 서버가 {PORT}번 포트에서 대기 중입니다...")
 

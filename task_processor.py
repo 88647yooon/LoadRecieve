@@ -3,7 +3,7 @@ import time
 # psutil 설치 필요: pip install psutil
 import psutil 
 
-PORT = 9999
+PORT = 5000
 BUFFER_SIZE = 10240  # 10KB 패킷을 한 번에 받기 위해 설정
 
 def start_overloaded_worker():
