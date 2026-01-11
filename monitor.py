@@ -1,7 +1,7 @@
 import psutil
 
 class monitor:
-    def ger_system_status():
+    def get_system_status():
         cpu_usage = psutil.cpu_percent(interval = 0.1)
         memory = psutil.virtual_memory()
         memory_usage = memory.percent

@@ -1,47 +1,48 @@
 import socket
 import time
-# psutil 설치 필요: pip install psutil
-import psutil 
+import json
+from monitor import monitor  #
+from config import PORT      #
 
-PORT = 5000
-BUFFER_SIZE = 10240  # 10KB 패킷을 한 번에 받기 위해 설정
-
-def start_overloaded_worker():
+def start_worker():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind(('0.0.0.0', PORT))
-    server_socket.listen(100) # 대기 큐 크기
+    server_socket.listen(100)
     
-    print(f"[*] 서버 시작 (10KB 패킷 수신 대기 중...)")
-    
+    print(f"reciever 통합 서버 대기 중 - 포트: {PORT}")
+
     count = 0
     start_test_time = time.time()
 
     while True:
+        # [중요] accept는 바깥 루프에서 한 번만!
+        client_socket, addr = server_socket.accept()
+        print(f"sender 접속됨: {addr}")
+        
         try:
-            client_socket, addr = server_socket.accept()
-            # 1. 데이터 수신 (10KB)
-            data = client_socket.recv(BUFFER_SIZE)
+            # 맥북이 보낸 패킷 끝의 '\n'을 인식하기 위해 makefile 사용
+            f = client_socket.makefile('r', encoding='utf-8')
             
-            # 2. 아주 기본적인 처리 (문자열 변환)만 수행
-            _ = data.decode('utf-8', errors='ignore')
-            
-            count += 1
-            
-            # 1000개 단위로 현재 상태 출력
-            if count % 1000 == 0:
-                elapsed = time.time() - start_test_time
-                cpu = psutil.cpu_percent()
-                print(f"[!] {count}개 처리 중... 소요시간: {elapsed:.2f}s | CPU: {cpu}%")
-                # 여기서 소요시간이 1초를 훌쩍 넘긴다면 이미 '지연'이 발생하고 있는 것임
-
-            # 3. 짧은 응답 전송 후 즉시 닫기
-            client_socket.send(b"ACK")
-            client_socket.close()
+            while True:
+                line = f.readline()
+                if not line: # 맥북이 연결을 끊으면 안쪽 루프 탈출
+                    break
+                
+                count += 1
+                
+                # 100개 단위로 상태 출력
+                if count % 100 == 0:
+                    status = monitor.get_status_string() #
+                    elapsed = time.time() - start_test_time
+                    print(f"{count}개 처리 중... 소요시간: {elapsed:.2f}s | {status}")
 
         except Exception as e:
-            print(f"에러 발생: {e}")
-            break
+            print(f"전송 오류 발생: {e}")
+        finally:
+            # 맥북이 통신을 완전히 끝냈을 때만 소켓을 닫음
+            client_socket.close()
+            print(f"sender 연결 종료. 다음 연결 대기...")
 
 if __name__ == "__main__":
-    start_overloaded_worker()
+    start_worker()
